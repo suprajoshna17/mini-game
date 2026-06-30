@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Ultra Pro Quiz App</title>
+
+<style>
+body{
+margin:0;
+font-family:Arial;
+background:linear-gradient(135deg,#000428,#004e92);
+color:white;
+display:flex;
+justify-content:center;
+align-items:center;
+height:100vh;
+}
+
+/* container */
+.box{
+width:460px;
+background:rgba(0,0,0,0.85);
+padding:25px;
+border-radius:15px;
+box-shadow:0 0 30px cyan;
+text-align:center;
+transition:0.3s;
+}
+
+/* buttons */
+button{
+width:100%;
+padding:10px;
+margin:8px 0;
+border:none;
+border-radius:8px;
+cursor:pointer;
+font-weight:bold;
+transition:0.2s;
+}
+
+button:hover{
+transform:scale(1.04);
+}
+
+.menuBtn{background:cyan;}
+.option{background:white;}
+.correct{background:lime !important;}
+.wrong{background:red !important;}
+.nextBtn{background:orange;display:none;}
+
+/* top bar */
+.top{
+display:flex;
+justify-content:space-between;
+font-size:14px;
+color:#ccc;
+margin-bottom:10px;
+}
+
+/* timer */
+#timer{
+color:orange;
+font-size:18px;
+margin:10px 0;
+}
+
+/* progress */
+#bar{
+width:100%;
+height:10px;
+background:#333;
+border-radius:10px;
+overflow:hidden;
+}
+
+#fill{
+height:100%;
+width:0%;
+background:cyan;
+transition:0.2s;
+}
+
+/* confetti */
+.confetti{
+position:fixed;
+width:8px;
+height:8px;
+background:yellow;
+animation:fall 3s linear infinite;
+}
+
+@keyframes fall{
+0%{transform:translateY(-10px) rotate(0);}
+100%{transform:translateY(100vh) rotate(360deg);}
+}
+</style>
+</head>
+
+<body>
+
+<div class="box" id="box">
+
+<h2>🧠 ULTRA QUIZ APP</h2>
+<p>Select Mode</p>
+
+<button class="menuBtn" onclick="start('GK')">General Knowledge</button>
+<button class="menuBtn" onclick="start('Science')">Science</button>
+<button class="menuBtn" onclick="start('Math')">Math</button>
+
+</div>
+
+<script>
+
+/* QUESTION BANK */
+const questions = {
+GK:[
+{q:"Capital of India?",o:["Mumbai","Delhi","Chennai","Kolkata"],a:"Delhi"},
+{q:"National Animal of India?",o:["Lion","Tiger","Elephant","Leopard"],a:"Tiger"}
+],
+Science:[
+{q:"H2O is?",o:["Oxygen","Hydrogen","Water","Salt"],a:"Water"},
+{q:"Planet with rings?",o:["Earth","Mars","Saturn","Venus"],a:"Saturn"}
+],
+Math:[
+{q:"2 x 5 = ?",o:["10","15","20","25"],a:"10"},
+{q:"9 + 6 = ?",o:["12","13","15","16"],a:"15"}
+]
+};
+
+let mode="";
+let index=0;
+let score=0;
+let time=10;
+let timer;
+let current=[];
+
+/* sound */
+function beep(freq){
+let ctx=new AudioContext();
+let osc=ctx.createOscillator();
+osc.frequency.value=freq;
+osc.connect(ctx.destination);
+osc.start();
+osc.stop(ctx.currentTime+0.15);
+}
+
+/* start */
+function start(m){
+mode=m;
+current=shuffle([...questions[m]]);
+index=0;
+score=0;
+loadUI();
+loadQ();
+}
+
+/* shuffle */
+function shuffle(arr){
+return arr.sort(()=>Math.random()-0.5);
+}
+
+/* UI */
+function loadUI(){
+document.getElementById("box").innerHTML=`
+<div class="top">
+<div>Mode: ${mode}</div>
+<div>Score: <span id="score">0</span></div>
+</div>
+
+<h2 id="q">Question</h2>
+
+<div id="timer">Time: 10</div>
+
+<div id="bar"><div id="fill"></div></div>
+
+<button class="option" onclick="check(this)"></button>
+<button class="option" onclick="check(this)"></button>
+<button class="option" onclick="check(this)"></button>
+<button class="option" onclick="check(this)"></button>
+
+<button class="nextBtn" id="next" onclick="next()">Next</button>
+`;
+}
+
+/* question */
+function loadQ(){
+clearInterval(timer);
+time=10;
+
+let q=current[index];
+
+document.getElementById("q").innerText=q.q;
+
+let btns=document.querySelectorAll(".option");
+
+btns.forEach((b,i)=>{
+b.innerText=q.o[i];
+b.className="option";
+b.disabled=false;
+});
+
+document.getElementById("next").style.display="none";
+
+timer=setInterval(()=>{
+document.getElementById("timer").innerText="Time: "+time;
+
+document.getElementById("fill").style.width=((10-time)/10)*100+"%";
+
+time--;
+
+if(time<0){
+clearInterval(timer);
+auto();
+}
+},1000);
+}
+
+/* check */
+function check(btn){
+clearInterval(timer);
+
+let ans=current[index].a;
+
+if(btn.innerText===ans){
+btn.classList.add("correct");
+score++;
+beep(700);
+}else{
+btn.classList.add("wrong");
+beep(200);
+}
+
+document.getElementById("score").innerText=score;
+
+document.querySelectorAll(".option").forEach(b=>{
+if(b.innerText===ans)b.classList.add("correct");
+b.disabled=true;
+});
+
+document.getElementById("next").style.display="block";
+}
+
+/* auto */
+function auto(){
+let ans=current[index].a;
+
+document.querySelectorAll(".option").forEach(b=>{
+if(b.innerText===ans)b.classList.add("correct");
+b.disabled=true;
+});
+
+document.getElementById("next").style.display="block";
+}
+
+/* next */
+function next(){
+index++;
+
+if(index<current.length){
+loadQ();
+}else{
+result();
+}
+}
+
+/* confetti */
+function confetti(){
+for(let i=0;i<50;i++){
+let d=document.createElement("div");
+d.className="confetti";
+d.style.left=Math.random()*100+"vw";
+d.style.background=["red","yellow","cyan","lime"][Math.floor(Math.random()*4)];
+document.body.appendChild(d);
+
+setTimeout(()=>d.remove(),3000);
+}
+}
+
+/* result */
+function result(){
+confetti();
+
+document.getElementById("box").innerHTML=`
+<h2>🎉 Finished!</h2>
+<p>Score: ${score} / ${current.length}</p>
+<button class="menuBtn" onclick="location.reload()">Restart</button>
+`;
+}
+</script>
+
+</body>
+</html>
